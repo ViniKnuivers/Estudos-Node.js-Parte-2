@@ -1,0 +1,41 @@
+import { expect, describe, it, beforeEach } from 'vitest'
+import { hash } from 'bcryptjs'
+import { AuthenticateUseCase } from './authenticate'
+import { InMemoryUsersRepository } from '@/repositories/in-memory-users-repository'
+import { InvalidCredentialsError } from './errors/invalid-credentials-error'
+import { GetUserProfileUseCase } from './get-user-profile'
+import { ResourceNotFoundError } from './errors/resource-not-found-error'
+
+let usersRepository: InMemoryUsersRepository
+let getUserProfileUseCase: GetUserProfileUseCase
+
+describe('Get User Profile Use Case', () => {
+    beforeEach(() => {
+        usersRepository = new InMemoryUsersRepository()
+        getUserProfileUseCase = new GetUserProfileUseCase(usersRepository)
+    })
+
+    it('should be able to get a user profile', async () => {
+        const createdUser = await usersRepository.create({
+            nome: 'Jhon Doe',
+            email: 'jhondoe@example.com',
+            password_hash: await hash('123456', 6),
+        })
+
+        const { user } = await getUserProfileUseCase.execute({
+            userId: createdUser.id,
+        })
+
+        expect(user.id).toEqual(expect.any(String))
+        expect(user.nome).toEqual('Jhon Doe')
+        })
+            
+        it('should not be able to get user profile with wrong id', async () => {
+        expect(() =>
+            getUserProfileUseCase.execute({
+                userId: 'non-existing-id'
+            }),
+        ).rejects.toBeInstanceOf(ResourceNotFoundError)
+    })
+})
+
